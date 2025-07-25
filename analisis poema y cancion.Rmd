@@ -1,0 +1,381 @@
+---
+title: "analisis emocionalidad texto"
+author: "julieth vanessa tovar torres"
+date: "2022-11-17"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# **_1) POEMA "No voy a pedirte nada – Frida Kahlo"_**
+
+FRIDA KAHLO\
+Magdalena Carmen Frida Kahlo Calderón, conocida como Frida Kahlo, fue una pintora 
+mexicana. Su obra gira temáticamente en torno a su biografía y a su propio sufrimiento.\
+Fue autora de 150 obras, principalmente autorretratos, en los que proyectó sus dificultades por sobrevivir.\
+Nacimiento 6 de Julio de 1907, Coyoacan, Ciudad de Mexico, Mexico\
+Fallecimiento 13 de Julio de 1954, Coyoacan, Ciudad de Mexico, Mexico\
+Conyuge Diego Rivera\
+
+NO VOY A PEDIRTE NADA\
+No te voy a pedir que me des un beso.\
+Ni que me pidas perdón cuando creo que lo has hecho mal o que te has equivocado.\
+Tampoco voy a pedirte que me abraces cuando más lo necesito, o que me invites a cenar\
+el día de nuestro aniversario.\
+No te voy a pedir que nos vayamos a recorrer mundo, a vivir nuevas experiencias, y\
+mucho menos te voy a pedir que me des la mano cuando estemos en mitad de la ciudad.\
+No te voy a pedir que me digas lo guapa que voy, aunque sea mentira, ni que me escribas\
+nada bonito.\
+No voy a pedirte que aparezcas en la puerta de mi casa con una rosa como tanto me\
+gustaría.\
+Tampoco te voy a pedir que me llames para contarme qué tal te fue la noche, ni que me\
+digas que me echas de menos.\
+No te voy a pedir que me rías las gracias, ni que hagas el tonto conmigo cuando mis\
+ánimos están por los suelos, y por supuesto, no te pediré que me apoyes en mis\
+decisiones.\
+Tampoco te voy a pedir que me escuches cuando tengo mil historias que contarte. No te\
+voy a pedir que hagas nada, ni siquiera que te quedes a mi lado para siempre.\
+Porque si tengo que pedírtelo, ya no lo quiero.\
+
+# **_2) CONTEXTUALIZACION PREVIA AL ANALISIS_**
+
+el poema anterior me genera las siguientes emociones:\
+trizteza\
+aversion\
+ira\
+miedo\
+
+tambien se dan estas emociones:\
+desamor\
+soledad\
+abandono\
+lastima\
+comprension\
+resignacion\
+libertad\
+fortaleza\
+
+sentimiento: \
+negativo
+
+# **_3) NUBE DE PALABRAS CON LAS PALABRAS MAS FRECUENTES_**
+librerias necesarias para la ejecucion del resto de puntos
+```{r}
+library(NLP)
+library(tm)
+library(SnowballC)
+library(RColorBrewer)
+library(wordcloud)
+library(wordcloud2)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(tokenizers)
+library(tidyverse)
+library(syuzhet)
+library(lubridate)
+library(scales)
+```
+creacion del texto y estandarizacion/eliminacion de caracteres
+```{r}
+poema <- paste("No te voy a pedir que me des un beso.
+Ni que me pidas perdón cuando creo que lo has hecho mal o que te has equivocado.
+Tampoco voy a pedirte que me abraces cuando más lo necesito, o que me invites a cenar el dia de nuestro aniversario.
+No te voy a pedir que nos vayamos a recorrer mundo, a vivir nuevas experiencias, y mucho menos te voy a pedir que me des la mano cuando estemos en mitad de la ciudad.
+No te voy a pedir que me digas lo guapa que voy, aunque sea mentira, ni que me escribas nada bonito.
+No voy a pedirte que aparezcas en la puerta de mi casa con una rosa como tanto me gustaria.
+Tampoco te voy a pedir que me llames para contarme qué tal te fue la noche, ni que me digas que me echas de menos.
+No te voy a pedir que me rías las gracias, ni que hagas el tonto conmigo cuando mis ánimos estan por los suelos, y por supuesto, no te pediré que me apoyes en mis decisiones.
+Tampoco te voy a pedir que me escuches cuando tengo mil historias que contarte. No te voy a pedir que hagas nada, ni siquiera que te quedes a mi lado para siempre.
+Porque si tengo que pedírtelo, ya no lo quiero.")
+poem<- poema%>%
+  removePunctuation()%>%
+  str_to_lower()%>%
+  str_replace_all(., "[[:cntrl:]]"," ")%>%
+  removeWords(., words = stopwords("spanish"))%>% 
+  removeWords(., words = c("usted", "pues", "tal", "tan", "asi", "dijo", "como", "sino",
+                           "entonces", "aunque", "que")) 
+
+coleccion<- poem%>%
+  VectorSource()%>%
+  Corpus()
+```
+
+creacion de la nube de palabras
+```{r}
+wordcloud(coleccion,
+          min.freq = 2, #frecuencia minima (que aparezcan 5 veces en el texto)
+          max.words = 80, #frecuencia maxima
+          random.order = FALSE,
+          colors = brewer.pal(name = "Dark2", n=8))
+```
+
+# **_4) GRAFICA DE EMOCIONES_**
+
+```{r}
+trad_emociones <- function(cadena){
+  case_when(
+    cadena == "anger"~"ira",
+    cadena == "anticipation"~"anticipación",
+    cadena == "disgust"~"aversión",
+    cadena == "fear"~"miedo",
+    cadena == "joy"~ "alegría",
+    cadena == "sadness"~"tristeza",
+    cadena == "surprise"~"asombro",
+    cadena == "trust"~"confianza",
+    cadena == "negative"~"negativo",
+    cadena == "positive"~"positivo",
+    TRUE ~ cadena
+  )
+}
+resultadopoem <- get_nrc_sentiment(poem, language = "spanish")
+resultadopoem
+
+sentimientospoem <- resultadopoem%>%
+  gather(sentimiento, cantidad)%>%
+  mutate(sentimiento = trad_emociones(sentimiento))%>%
+  group_by(sentimiento) %>%
+  summarise(total = sum(cantidad))
+sentimientospoem
+indexpoem<- sentimientospoem$sentimiento %in% c("positivo", "negativo")
+indexpoem
+```
+
+```{r}
+sentimientospoem[!indexpoem,]%>%
+  ggplot()+
+  aes(sentimiento, total)+
+  geom_bar(aes(fill =sentimiento), stat = "identity")+
+  theme(axis.text.x = element_text(angle = 45, hjust =  1))+
+  xlab(NULL) +
+  ylab("Total") + 
+  ggtitle("emociones en poema No voy a pedirte nada – Frida Kahlo")
+```
+
+# **_5) GRAFICA DE SENTIMIENTOS_**
+
+```{r}
+
+sentimientospoem[indexpoem,]%>%
+  ggplot()+
+  aes(sentimiento, total)+
+  geom_bar(aes(fill =sentimiento), stat = "identity")+
+  xlab(NULL) +
+  ylab("Total") + 
+  ggtitle("sentimientos en poema No voy a pedirte nada – Frida Kahlo")
+```
+
+# **_6) RELACION ENCONTRADO CON EXPUESTO PUNTO 2_**
+los resultados del analisis de R respecto a las emociones que produce el poema estan\
+bastante cercanos, a pesar que hay discrepancias como en alegria y confianza (lo cual\
+podria ser confianza en ella misma) emociones las cuales realmente no produce en el\
+lector.
+
+---
+# **_1) ANALISIS CANCION "Ilegal-Canción de Cultura Profética"_**
+CULTURA PROFETICA\
+Cultura Profética es una banda de reggae originaria de Puerto Rico que hizo su debut en\
+1996. Son reconocidos por su particular estilo con toques de roots reggae, su tributos\
+a Bob Marley, ​ y una discografía rica en exploraciones sonoras.\
+e rindieron tributo al legendario músico de reggae Bob Marley, emulando sus canciones\
+más famosas casi a la perfección. Boris Bilbraut, el baterista de la banda hizo de voz\
+principal en este exitoso tributo.\
+
+2010 es el año en que sale a la venta La Dulzura su más reciente producción\
+discográfica que trajo muchos éxitos hasta día de hoy, bajo el sello de La Mafafa, es\
+una producción de Willy Rodríguez (voz y bajo), Omar Silva (guitarra y bajo), Eliut\
+González (guitarra), Boris Bilbraut (batería y voz) y Juan C. Sulsona (teclado).\
+Origen: Puerto Rico (1996)\
+Género: Reggae\
+Premios: Premio Grammy Latino al Mejor Álbum de Música Alternativa\
+Sellos discográficos: Tuff Gong, LUAR MUSIC\
+
+
+ILEGAL\
+Tener tus ojos\
+Debe ser ilegal\
+Y más si cuando miras solo inspiras a pecar\
+Esa sonrisa peculiar\
+De jugar a tentar, letal\
+Esos dotes que sí sabes como usar para matar\
+Te has armado de forma perfecta\
+Para hacerme agonizar\
+Tan muerte lenta\
+Mientras tu boca violenta revienta\
+Dentro de mi boca como un rayo una tormenta\
+Tus manos calientan piel\
+Solo de rozarla\
+Mis manos van jugando a conocer tu espalda\
+Con toda la calma\
+Se alarga\
+La delicia de mi expedición hacia tus nalgas\
+Y no hay más que una sola versión\
+Una sola muestra total de perfección\
+Llenas de luz la habitación con tus brillos de neón\
+Y yo sin trabajo suelto así un último botón, pienso\
+Tan solo las doce y no se escuchan voces\
+Solo gemidos finos, sonidos del goce\
+Y para cerrar la noche\
+Con broche de oro\
+Yo te llego al oído y susurro este coro\
+Eso no fue nada, no\
+Ya estoy en confianza, negra\
+Si me regalas la mañana\
+Te llevo hasta la noche plena\
+Eso no fue nada, no, oh\
+Ya estoy en confianza, negra\
+Si me regalas la mañana\
+Ah-ah-ah-ah\
+Te llevo hasta la noche plena\
+Tus manos calientan piel\
+Solo de rozarla\
+Mis manos van jugando a conocer tu espalda\
+Con toda la calma\
+Se alarga\
+La delicia de mi expedición hacia tus nalgas\
+Y no hay más que una sola versión\
+Una sola muestra total de perfección\
+Llenas de luz la habitación con tus brillos de neón\
+Y yo\
+Lelo, disfrutando del juego\
+Eso no fue nada, no\
+Ya estoy en confianza, negra\
+Si me regalas la mañana\
+Te llevo hasta la noche plena\
+Eso no fue nada, no\
+Ya estoy en confianza, negra\
+Si me regalas la mañana\
+Ah-ah-ah-ah\
+Te llevo hasta la noche plena\
+Te llevo hasta la noche plena\
+Ah\
+Ay, te llevo hasta la noche, (Ah)\
+(Te llevo hasta la noche plena)\
+Ah-ah-ah\
+Te llevo hasta la noche plena\
+
+# **_2) CONTEXTUALIZACION PREVIA AL ANALISIS_**
+
+el poema anterior me genera las siguientes emociones:\
+alegria\
+asombro\
+confianza\
+
+
+tambien se dan estas emociones:\
+seduccion\
+deseo\
+tension\
+ansiedad\
+sorpresa\
+
+
+sentimiento:\
+positivo
+
+# **_3) NUBE DE PALABRAS CON LAS PALABRAS MAS FRECUENTES_**
+creacion del texto y estandarizacion/eliminacion de caracteres
+```{r}
+poemai <- paste("ILEGAL
+Tener tus ojos Debe ser ilegal Y más si cuando miras solo inspiras a pecar Esa sonrisa peculiar De jugar a tentar, letal Esos dotes que si sabes como usar para matar Te has armado de forma perfecta Para hacerme agonizar Tan muerte lenta Mientras tu boca violenta revienta Dentro de mi boca como un rayo una tormenta Tus manos calientan piel Solo de rozarla Mis manos van jugando a conocer tu espalda
+Con toda la calma Se alarga La delicia de mi expedición hacia tus nalgas Y no hay mas que una sola version Una sola muestra total de perfeccion
+Llenas de luz la habitacion con tus brillos de neon Y yo sin trabajo suelto asi un ultimo boton, pienso Tan solo las doce y no se escuchan voces Solo gemidos finos, sonidos del goce Y para cerrar la noche Con broche de oro Yo te llego al oído y susurro este coro Eso no fue nada, no Ya estoy en confianza, negra Si me regalas la mañana Te llevo hasta la noche plena Eso no fue nada, no, oh Ya estoy en confianza, negra
+Si me regalas la mañana Ah-ah-ah-ah Te llevo hasta la noche plena Tus manos calientan piel Solo de rozarla Mis manos van jugando a conocer tu espalda Con toda la calma Se alarga La delicia de mi expedición hacia tus nalgas Y no hay mas que una sola version
+Una sola muestra total de perfeccion Llenas de luz la habitacion con tus brillos de neon Y yo Lelo, disfrutando del juego
+Eso no fue nada, no Ya estoy en confianza, negra
+Si me regalas la mañana Te llevo hasta la noche plena
+Eso no fue nada, no Ya estoy en confianza, negra Si me regalas la mañana Ah-ah-ah-ah Te llevo hasta la noche plena Te llevo hasta la noche plena Ah Ay, te llevo hasta la noche, (Ah) (Te llevo hasta la noche plena) Ah-ah-ah Te llevo hasta la noche plena")
+poemi<- poemai%>%
+  removePunctuation()%>%
+  str_to_lower()%>%
+  str_replace_all(., "[[:cntrl:]]"," ")%>%
+  removeWords(., words = stopwords("spanish"))%>% 
+  removeWords(., words = c("usted", "pues", "tal", "tan", "asi", "dijo", "como", "sino","entonces", "aunque", "que","ah", "oh")) 
+poemi<- chartr("ÁÉÍÓÚ","AEIOU", toupper(poemi)) #quitar tildes
+
+coleccioni<- poemi%>%
+  VectorSource()%>%
+  Corpus()
+```
+
+creacion de la nube de palabras
+```{r}
+wordcloud(coleccioni,
+          min.freq = 3, #frecuencia minima (que aparezcan 3 veces en el texto)
+          max.words = 80, #frecuencia maxima
+          random.order = FALSE,
+          colors = brewer.pal(name = "Dark2", n=12))
+```
+
+# **_4) GRAFICA DE EMOCIONES_**
+
+```{r}
+trad_emociones <- function(cadena){
+  case_when(
+    cadena == "anger"~"ira",
+    cadena == "anticipation"~"anticipacion",
+    cadena == "disgust"~"aversion",
+    cadena == "fear"~"miedo",
+    cadena == "joy"~ "alegria",
+    cadena == "sadness"~"tristeza",
+    cadena == "surprise"~"asombro",
+    cadena == "trust"~"confianza",
+    cadena == "negative"~"negativo",
+    cadena == "positive"~"positivo",
+    TRUE ~ cadena
+  )
+}
+resultadopoemi <- get_nrc_sentiment(poemi, language = "spanish")
+resultadopoemi
+
+sentimientospoemi <- resultadopoemi%>%
+  gather(sentimiento, cantidad)%>%
+  mutate(sentimiento = trad_emociones(sentimiento))%>%
+  group_by(sentimiento) %>%
+  summarise(total = sum(cantidad))
+sentimientospoemi
+indexpoemi<- sentimientospoemi$sentimiento %in% c("positivo", "negativo")
+indexpoemi
+```
+
+```{r}
+
+sentimientospoemi[!indexpoemi,]%>%
+  ggplot()+
+  aes(sentimiento, total)+
+  geom_bar(aes(fill =sentimiento), stat = "identity")+
+  theme(axis.text.x = element_text(angle = 45, hjust =  1))+
+  xlab(NULL) +
+  ylab("Total") + 
+  ggtitle("emociones en Ilegal-Cancion de Cultura Profetica")
+```
+
+# **_5) GRAFICA DE SENTIMIENTOS_**
+
+```{r}
+
+sentimientospoemi[indexpoemi,]%>%
+  ggplot()+
+  aes(sentimiento, total)+
+  geom_bar(aes(fill =sentimiento), stat = "identity")+
+  xlab(NULL) +
+  ylab("Total") + 
+  ggtitle("sentimientos en Ilegal-Cancion de Cultura Profetica")
+```
+
+
+# **_6) RELACION ENCONTRADO CON EXPUESTO PUNTO 2_**
+
+los resultados del analisis de R respecto a las emociones que produce la cancion estan\
+bastante lejanos, ya que evidencia los sentimientos como negativos aun cuando no es la sensacion que le produce a la audiencia, en cuanto a las emociones tambien esta errado ya que lo que mas evidencia es miedo cuando no deberia ser asi ya que es una cancion de seduccion que a pesar que puede tener notaciones un poco sombrias no deberia generar temor ni algo por el estilo asi como tampoco ira, vaersion y tristeza.
+
+
+
+
+
+
+
+
+
+
